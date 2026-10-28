@@ -55,7 +55,8 @@ function renderDevices() {
   if([...$('#preview-device').options].some(o=>o.value===previous))$('#preview-device').value=previous;
 }
 $('#add-device').addEventListener('click',()=>{const p=PROFILES.find(p=>p.id===$('#new-device').value);if(p&&devices.length<8){devices.push({profile:p.id,label:p.name});renderDevices();refresh();}});
-function settings() {return {mode:form.elements.mode.value,limit:Number($('#limit').value),maxSizeGB:Number($('#max-size').value),priority:$('#priority').value,unknown:$('#unknown').value,hideUncached:$('#hide-uncached').checked,cachedOnly:$('#cached-only').checked,allowP2P:$('#allow-p2p').checked};}
+function choice(selector,values,fallback,label) {const raw=$(selector)?.value;const value=typeof raw==='string'?raw.trim():'';if(!value)return fallback;if(!values.includes(value))throw new Error(`Please select ${label} again.`);return value;}
+function settings() {return {mode:choice('input[name="mode"]:checked',['auto','groups','universal'],'auto','how results should appear'),limit:Number($('#limit').value),maxSizeGB:Number($('#max-size').value),priority:choice('#priority',['quality','smaller'],'quality','your sorting preference'),unknown:choice('#unknown',['fallback','exclude'],'fallback','how to handle missing stream details'),hideUncached:$('#hide-uncached').checked,cachedOnly:$('#cached-only').checked,allowP2P:$('#allow-p2p').checked};}
 function configuration() {
   const sources=[...$('#sources').children].map(row=>({name:row.querySelector('[data-role=name]').value.trim(),url:row.querySelector('[data-role=url]').value.trim()})).filter(s=>s.url);
   if (!sources.length) throw new Error('Paste at least one configured addon manifest link. Unused source rows can stay empty.');

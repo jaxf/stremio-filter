@@ -126,3 +126,22 @@ test('compressed links are shorter and legacy uncompressed links still decrypt',
   const legacy=Buffer.concat([iv,cipher.getAuthTag(),encrypted]).toString('base64url');
   assert.deepEqual(unseal(legacy,secret),c);
 });
+
+test('empty restored filter choices use documented defaults',()=>{
+  for(const empty of ['', '  ', null]){
+    const c=validateConfig({...config(),settings:{mode:empty,priority:empty,unknown:empty}});
+    assert.deepEqual(c.settings,DEFAULT_SETTINGS);
+  }
+  assert.throws(()=>validateConfig({...config(),settings:{mode:'invalid'}}),/how results should appear/);
+  assert.throws(()=>validateConfig({...config(),settings:{priority:'invalid'}}),/sorting preference/);
+  assert.throws(()=>validateConfig({...config(),settings:{unknown:'invalid'}}),/missing stream details/);
+});
+test('all UI filter combinations create valid manifest links',async()=>{
+  for(const mode of ['auto','groups','universal'])for(const priority of ['quality','smaller'])for(const unknown of ['fallback','exclude']){
+    const c={...config(),settings:{...DEFAULT_SETTINGS,mode,priority,unknown}};
+    const response=await handle({method:'POST',path:'/api/config',body:JSON.stringify(c),client:'combinations'},{secret});
+    assert.equal(response.status,200,`${mode}/${priority}/${unknown}`);
+    const manifestResponse=await handle({path:JSON.parse(response.body).path,client:'combinations'},{secret});
+    assert.equal(manifestResponse.status,200);
+  }
+});

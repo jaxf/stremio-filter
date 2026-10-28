@@ -1,3 +1,4 @@
+import { createCipheriv, createHash, randomBytes } from 'node:crypto';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { validateConfig, seal, unseal, manifest, DEFAULT_SETTINGS, addonURL } from '../lib/config.mjs';
@@ -115,4 +116,13 @@ test('Netlify adapter supports original and rewritten paths and base64 request b
       const response=await netlifyHandler({httpMethod:'GET',rawUrl,headers:{}});assert.equal(response.statusCode,200);assert.equal(JSON.parse(response.body).name,'Family Streams');
     }
   } finally {if(previous===undefined)delete process.env.CONFIG_SECRET;else process.env.CONFIG_SECRET=previous;}
+});
+
+test('compressed links are shorter and legacy uncompressed links still decrypt',()=>{
+  const c=config(),token=seal(c,secret);
+  assert.ok(token.length < Buffer.byteLength(JSON.stringify(c))*4/3);
+  const iv=randomBytes(12),cipher=createCipheriv('aes-256-gcm',createHash('sha256').update(secret).digest(),iv);
+  const encrypted=Buffer.concat([cipher.update(JSON.stringify(c)),cipher.final()]);
+  const legacy=Buffer.concat([iv,cipher.getAuthTag(),encrypted]).toString('base64url');
+  assert.deepEqual(unseal(legacy,secret),c);
 });

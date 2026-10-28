@@ -61,13 +61,13 @@ Built-in presets cover Mac, iPhone/iPad, Apple TV, Google/Android TV, Fire TV (i
 
 ## Security and hosting notes
 
-The browser sends configured source links to the backend over HTTPS. AES-256-GCM encrypts settings into the manifest URL using `CONFIG_SECRET`; no database is needed. This hides raw upstream credentials from casual inspection but **the install URL is a bearer credential**. Anyone with it can use the configured sources, and the backend operator can decrypt it. Stremio stores and syncs the install URL. Hosting access logs may contain it: avoid public logs/analytics and do not share it publicly. The app does not store source links in localStorage or log request bodies.
+The browser sends configured source links to the backend over HTTPS. Settings are compressed to reduce install-link length, then AES-256-GCM encrypts settings into the manifest URL using `CONFIG_SECRET`; no database is needed. This hides raw upstream credentials from casual inspection but **the install URL is a bearer credential**. Anyone with it can use the configured sources, and the backend operator can decrypt it. Stremio stores and syncs the install URL. Hosting access logs may contain it: avoid public logs/analytics and do not share it publicly. The app does not store source links in localStorage or log request bodies.
 
 Requests to upstream addons require HTTPS and port 443, reject private/reserved DNS results, pin the verified IP during TLS connection, reject redirects, and enforce time/response-size limits. Query strings and configured path prefixes are preserved. Optional `ALLOWED_ADDON_HOSTS` is a comma-separated exact-host allowlist for a controlled deployment. CORS permits Stremio clients and a separate configurator; no cookies are used.
 
 There is a basic in-memory limit of 60 API requests per client per minute, bounded input sizes, at most 6 upstream addons and 8 device profiles. The limiter is **not distributed** across serverless instances; use host-level abuse controls before offering a large public service. There is no per-link revocation or account management. Key rotation revokes all links.
 
-Configuration is capped at 5,200 UTF-8 bytes so encrypted links stay below approximately 7,100 characters. Long provider configs may require fewer sources. Clients/hosts can impose smaller URL limits. Links do not expire automatically. To edit, use the setup page again and replace the old Family Streams installation; different settings produce a different addon identity. Recreating identical settings preserves the identity.
+Configuration is capped at 5,200 UTF-8 bytes so encrypted links stay below approximately 7,100 characters. Long provider configs may require fewer sources. Clients/hosts can impose smaller URL limits. The setup page verifies the generated manifest before showing the install button. Legacy uncompressed links remain supported. Links do not expire automatically. To edit, use the setup page again and replace the old Family Streams installation; different settings produce a different addon identity. Recreating identical settings preserves the identity.
 
 ## Verification
 

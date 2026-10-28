@@ -86,7 +86,14 @@ form.addEventListener('submit',async event=> {
   try {
     const result=await api('/api/config',configuration());if(!/^\/addon\/[A-Za-z0-9_-]+\/manifest\.json$/.test(result.path))throw new Error('The backend returned an invalid addon link.');
     if(submittedRevision!==revision){status('Your settings changed. Create a new link to include those changes.');return;}
-    generatedURL=backend()+result.path;$('#install-link').value=generatedURL;$('#install').href=generatedURL.replace(/^https?:\/\//,'stremio://');$('#result').hidden=false;status(`Ready: one addon with ${result.devices} device profile${result.devices===1?'':'s'}.`,'success');$('#result').scrollIntoView({behavior:'smooth',block:'nearest'});
+    const candidate=backend()+result.path;
+    status('Checking your new manifest before installation…');
+    const check=await fetch(candidate,{signal:AbortSignal.timeout(15000),referrerPolicy:'no-referrer'});
+    if(!check.ok)throw new Error(`Manifest check failed (HTTP ${check.status}). Check the backend deployment before installing.`);
+    const verified=await check.json();
+    if(!verified.id?.startsWith('community.familyfilter.'))throw new Error('The manifest URL did not return a valid Family Streams addon.');
+    if(submittedRevision!==revision){status('Your settings changed. Create a new link to include those changes.');return;}
+    generatedURL=candidate;$('#install-link').value=generatedURL;$('#install').href=generatedURL.replace(/^https?:\/\//,'stremio://');$('#result').hidden=false;status(`Ready: one addon with ${result.devices} device profile${result.devices===1?'':'s'}.`,'success');$('#result').scrollIntoView({behavior:'smooth',block:'nearest'});
   }catch(e){status(e.message,'error');}finally{button.disabled=false;}
 });
 $('#copy-link').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(generatedURL);status('Install link copied. Keep it private.','success');}catch{$('#install-link').select();status('Select and copy the link above. Your browser blocked clipboard access.');}});

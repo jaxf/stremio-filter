@@ -88,13 +88,13 @@ export function selectStreams(entries, config, userAgent = '') {
   for (const group of groups) {
     const assessed = unique.map(e => {
       const checks = group.devices.map(d => assess(e.stream, d, settings));
-      return { ...e, ...checks[0], eligible: checks.every(c => c.eligible), incomplete: checks.some(c => c.incomplete), score: Math.min(...checks.map(c => c.score)) };
+      return { ...e, ...checks[0], eligible: checks.every(c => c.eligible), reasons:[...new Set(checks.flatMap(c=>c.reasons))], incomplete: checks.some(c => c.incomplete), score: Math.min(...checks.map(c => c.score)) };
     });
     const eligible = assessed.filter(e => e.eligible).sort((a,b) => b.score-a.score);
     // Incomplete metadata is a fallback only, so it never crowds out known matches.
     const known = eligible.filter(e => !e.incomplete);
     const chosen = (settings.unknown === 'fallback' && known.length ? known : eligible).slice(0, settings.limit);
-    report.push({ label:group.label, total:unique.length, eligible:eligible.length, shown:chosen.length });
+    report.push({ label:group.label, total:unique.length, eligible:eligible.length, shown:chosen.length, excluded:assessed.filter(e=>!e.eligible).length, reasons:Object.fromEntries([...new Set(assessed.flatMap(e=>e.reasons))].map(reason=>[reason,assessed.filter(e=>e.reasons.includes(reason)).length])) });
     chosen.forEach((e, i) => {
       const quality = e.meta.resolution ? `${e.meta.resolution}p` : 'Quality unknown';
       const size = e.meta.bytes ? `${(e.meta.bytes / 1e9).toFixed(1)} GB` : 'Size unknown';

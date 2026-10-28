@@ -145,3 +145,22 @@ test('all UI filter combinations create valid manifest links',async()=>{
     assert.equal(manifestResponse.status,200);
   }
 });
+
+test('live diagnostics distinguish upstream failures, zero results, and filtered results without leaking links',async()=>{
+  const c=config();c.devices=[{profile:'fire-tv',label:'Fire TV'}];
+  c.sources.push({name:'Empty',url:'https://empty.example/manifest.json'},{name:'Failed',url:'https://failed.example/secret/manifest.json'});
+  const token=seal(c,secret);
+  const fetcher=async u=>{if(u.hostname==='failed.example')throw Error('Source returned HTTP 403');if(u.hostname==='empty.example')return {streams:[]};return {streams:[stream('Film.2160p.HEVC.TrueHD.mkv')]};};
+  const result=await handle({method:'POST',path:'/api/diagnose',body:JSON.stringify({manifestUrl:`https://addon.example/addon/${token}/manifest.json`,type:'movie',id:'tt0133093'}),client:'diagnostics'},{secret,fetcher});
+  assert.equal(result.status,200);const data=JSON.parse(result.body);
+  assert.equal(data.sources[0].count,1);assert.equal(data.sources[1].count,0);assert.equal(data.sources[1].ok,true);assert.equal(data.sources[2].ok,false);assert.equal(data.sources[2].message,'Source returned HTTP 403');
+  assert.equal(data.totalReturned,0);assert.equal(data.devices[0].reasons.Resolution,1);assert.equal(data.devices[0].reasons['Video codec'],1);
+  assert.ok(!result.body.includes('https://'));assert.ok(!result.body.includes(token));
+});
+test('diagnostics rejects invalid installed links and IDs without contacting any source',async()=>{
+  let calls=0;const fetcher=async()=>{calls++;return {streams:[]};};
+  for(const input of [{manifestUrl:'https://example.com/manifest.json',type:'movie',id:'tt0133093'},{manifestUrl:`https://addon.example/addon/${seal(config(),secret)}/manifest.json`,type:'movie',id:'../bad'}]){
+    const result=await handle({method:'POST',path:'/api/diagnose',body:JSON.stringify(input),client:'diag-invalid'},{secret,fetcher});assert.equal(result.status,400);
+  }
+  assert.equal(calls,0);
+});

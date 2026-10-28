@@ -84,3 +84,7 @@ Live provider playback and physical TV behavior require testing with actual conf
 - `test/`: dependency-free automated tests.
 
 Protocol references: [Stremio addon protocol](https://stremio.github.io/stremio-addon-sdk/protocol.html), [stream objects](https://stremio.github.io/stremio-addon-sdk/api/responses/stream.html), [proxying other addons](https://stremio.github.io/stremio-addon-sdk/advanced.html), [Netlify configuration](https://docs.netlify.com/build/configure-builds/file-based-configuration/).
+
+## Troubleshoot missing streams
+
+Family Streams adds its own stream results; it cannot modify another installed addon's list. The setup page's **Missing streams? Test a title** section accepts your existing Family Streams manifest link and an IMDb movie/episode ID. It requests real upstream results and shows each source's count/status and each device's rejection reasons. No reinstall is needed to use diagnostics. Do not post the manifest link publicly; share only the diagnostic summary. Successful manifest/connection checks alone do not prove a provider will return streams for a title.

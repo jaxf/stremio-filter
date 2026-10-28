@@ -123,7 +123,18 @@ function renderPreview(){
   $('#preview-summary').textContent=`${rows.length} demo matches${rows.length>4?' · showing first 4':''} · ${demo.length} example sources`;
 }
 function refresh(){invalidate();renderPreview();}
-form.addEventListener('input',refresh);form.addEventListener('change',refresh);
+const refreshConfiguration = event => { if (!event.target.id?.startsWith('diagnostic-')) refresh(); };
+form.addEventListener('input',refreshConfiguration);form.addEventListener('change',refreshConfiguration);
 $('#preview-device').addEventListener('change',renderPreview);
 renderDevices();renderPreview();
 if(location.hostname.endsWith('github.io')){$('#hosting-options').open=true;$('#backend').placeholder='Required: https://your-addon.netlify.app';}
+
+$('#diagnose').addEventListener('click',async()=>{
+  const button=$('#diagnose'),node=$('#diagnostic-status');button.disabled=true;node.className='status';node.textContent='Requesting streams and checking each device profile…';
+  try {
+    const result=await api('/api/diagnose',{manifestUrl:$('#diagnostic-link').value.trim()||generatedURL,type:$('#diagnostic-type').value,id:$('#diagnostic-id').value.trim()});
+    const sources=result.sources.map(s=>`${s.ok?'✓':'!'} ${s.name}: ${s.count} streams — ${s.message}`);
+    const devices=result.devices.map(d=>`${d.label}: ${d.shown} shown, ${d.excluded} excluded${Object.keys(d.reasons).length?' ('+Object.entries(d.reasons).map(([reason,count])=>`${reason}: ${count}`).join(', ')+')':''}`);
+    node.textContent=[...sources,'',...devices,'',result.totalReturned ? 'The addon returns streams for this title. If absent in Stremio, confirm this exact Family Streams link is installed and reopen the title. Other addon lists are not modified.' : 'No streams would be shown. The source results and filter reasons above explain where they were lost.'].join('\n');
+  }catch(e){node.className='status error';node.textContent=e.message;}finally{button.disabled=false;}
+});

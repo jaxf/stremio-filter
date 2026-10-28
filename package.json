@@ -1,0 +1,16 @@
+{
+  "name": "stremio-filter",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "One family Stremio addon with device-aware stream filtering and a setup website",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "node --env-file-if-exists=.env server.mjs",
+    "start": "node server.mjs",
+    "test": "node --test",
+    "check": "node --check server.mjs && node --check public/app.js && node --test"
+  }
+}
